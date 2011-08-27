@@ -57,6 +57,18 @@ class _TestButtonTweak(Tweak):
             else:
                 self.notify_info(self.name)
 
+class _TestButtonTweakDumpGSettings(_TestButtonTweak):
+    def _on_click(self, sender):
+        from pprint import pprint
+        from gtweak.gsettings import _SCHEMA_CACHE
+
+        cache = {}
+        for k in _SCHEMA_CACHE:
+            cache[k] = _SCHEMA_CACHE[k]._schema
+
+        pprint(cache)
+        
+
 TWEAK_GROUPS = (
     TweakGroup(
         "Test Settings Group",
@@ -74,5 +86,6 @@ TWEAKS = (
     _TestButtonTweak("Need Action", "foo bar", need_action=True, group_name=group_name),
     _TestButtonTweak("Report Error", "foo baz", action_error=True, group_name=group_name),
     _TestButtonTweak("Report Info", "foo bob", action_error=False, group_name=group_name),
+    _TestButtonTweakDumpGSettings("Print GSettings Schema Cache", "Print!", need_action=True, group_name=group_name),
 )
 

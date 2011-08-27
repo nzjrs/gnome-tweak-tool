@@ -41,16 +41,26 @@ class _GSettingsSchema:
             for schema in dom.getElementsByTagName("schema"):
                 if schema_name == schema.getAttribute("id"):
                     for key in schema.getElementsByTagName("key"):
-                        #summary is compulsory, description is optional
-                        summary = key.getElementsByTagName("summary")[0].childNodes[0].data
-                        try:
-                            description = key.getElementsByTagName("description")[0].childNodes[0].data
-                        except:
-                            description = ""
+                        #summary is compulsory
                         self._schema[key.getAttribute("name")] = {
-                                "summary"       :   summary,
-                                "description"   :   description
+                            "summary" : key.getElementsByTagName("summary")[0].childNodes[0].data
                         }
+
+                        #description is optional
+                        try:
+                            description = {"description" : key.getElementsByTagName("description")[0].childNodes[0].data}
+                        except:
+                            description = {}
+
+                        #default is optional
+                        try:
+                            default = {"default" : key.getElementsByTagName("default")[0].childNodes[0].data}
+                        except:
+                            default = {}
+
+                        self._schema[key.getAttribute("name")].update(description)
+                        self._schema[key.getAttribute("name")].update(default)
+
         except:
             logging.critical("Error parsing schema %s (%s)" % (schema_name, schema_path), exc_info=True)
 
