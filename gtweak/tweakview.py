@@ -31,6 +31,10 @@ class TweakView:
         self._main_window.set_size_request(640, 480)
         self._main_window.connect('destroy', Gtk.main_quit)
 
+        #use the Alt keys to reveal the reset button
+        self._alt_keys = set((Gdk.keyval_from_name('Alt_L'),Gdk.keyval_from_name('Alt_R')))
+        self._main_window.connect('key-press-event', self._on_key_press)
+
         self._entry_manager = EntryManager(
             builder.get_object('search_entry'),
             self._on_search,
@@ -153,6 +157,12 @@ class TweakView:
             self.show_tweaks(tweakgroup.tweaks)
             
             self._on_post_selection_change()
+
+    def _on_key_press(self, widget, event):
+        if event.keyval in self._alt_keys and event.state == 0:
+            print "ALT PRESS"
+        #always propogate key pressess
+        return False
             
 class EntryManager:
 
