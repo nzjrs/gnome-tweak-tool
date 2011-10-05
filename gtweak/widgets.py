@@ -20,6 +20,7 @@ from gi.repository import Gtk, Gdk, Gio, Pango
 from gtweak.tweakmodel import Tweak
 from gtweak.gsettings import GSettingsSetting
 from gtweak.gconf import GConfSetting
+from gtweak.utils import make_combo_list_with_default
 
 def build_label_beside_widget(txt, *widget, **kwargs):
     """
@@ -170,22 +171,36 @@ class GSettingsComboEnumTweak(_GSettingsTweak):
         if self._values_are_different():
             self.settings.set_string(self.key_name, val)
 
-class GSettingsComboTweak(_GSettingsTweak):
-    def __init__(self, schema_name, key_name, key_options, **options):
-        _GSettingsTweak.__init__(self, schema_name, key_name, **options)
+class _ComboMixin:
+    def make_combo_widget(self, key_options, selected, **options):
+        #check it is a list of 2-tuples
+        assert len(key_options[0]) == 2
 
-        #check key_options is iterable
-        #and if supplied, check it is a list of 2-tuples
-        assert len(key_options) >= 0
-        if len(key_options):
-            assert len(key_options[0]) == 2
+        if options.get("default_value"):
+            default_value = self.settings.schema_get_default(self.key_name) or options["default_value"]
+            key_options = make_combo_list_with_default(
+                                    [o[0] for o in key_options],
+                                    default_value,
+                                    **options)
 
         combo = build_combo_box_text(
-                    self.settings.get_string(self.key_name),
+                    selected,
                     *key_options)
         combo.connect('changed', self._on_combo_changed)
         self.widget = build_label_beside_widget(self.name, combo)
         self.widget_for_size_group = combo
+
+class GSettingsComboTweak(_GSettingsTweak, _ComboMixin):
+    def __init__(self, schema_name, key_name, key_options, **options):
+        _GSettingsTweak.__init__(self, schema_name, key_name, **options)
+
+        #check key_options is iterable
+        assert len(key_options) >= 0
+        if len(key_options):
+            self.make_combo_widget(
+                    key_options,
+                    self.settings.get_string(self.key_name),
+                    **options)
 
     def _on_combo_changed(self, combo):
         _iter = combo.get_active_iter()
@@ -201,22 +216,16 @@ class _GConfTweak(Tweak):
             options.get("description",self.gconf.schema_get_description()),
             **options)
 
-class GConfComboTweak(_GConfTweak):
+class GConfComboTweak(_GConfTweak, _ComboMixin):
     def __init__(self, key_name, key_type, key_options, **options):
         _GConfTweak.__init__(self, key_name, key_type, **options)
 
         #check key_options is iterable
-        #and if supplied, check it is a list of 2-tuples
         assert len(key_options) >= 0
         if len(key_options):
-            assert len(key_options[0]) == 2
-
-        combo = build_combo_box_text(
-            self.gconf.get_value(),
-            *key_options)
-        combo.connect('changed', self._on_combo_changed)
-        self.widget = build_label_beside_widget(self.name, combo)
-        self.widget_for_size_group = combo
+            self.make_combo_widget(
+                    key_options,
+                    self.gconf.get_value())
 
     def _on_combo_changed(self, combo):
         _iter = combo.get_active_iter()

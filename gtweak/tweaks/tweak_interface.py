@@ -29,8 +29,9 @@ class GtkThemeSwitcher(GSettingsComboTweak):
         GSettingsComboTweak.__init__(self,
             "org.gnome.desktop.interface",
             "gtk-theme",
-            make_combo_list_with_default(self._get_valid_themes(), "Adwaita"),
+            [(v,v) for v in self._get_valid_themes()],
             summary=_("GTK+ theme"),
+            default_value="Adwaita",
             **options)
 
     def _get_valid_themes(self):
@@ -47,7 +48,8 @@ class IconThemeSwitcher(GSettingsComboTweak):
         GSettingsComboTweak.__init__(self,
             "org.gnome.desktop.interface",
             "icon-theme",
-            make_combo_list_with_default(self._get_valid_icon_themes(), "gnome"),
+            [(v,v) for v in self._get_valid_icon_themes()],
+            default_value="gnome",
             summary=_("Icon theme"),
             **options)
 
@@ -64,7 +66,8 @@ class CursorThemeSwitcher(GSettingsComboTweak):
         GSettingsComboTweak.__init__(self,
             "org.gnome.desktop.interface",
             "cursor-theme",
-            make_combo_list_with_default(self._get_valid_cursor_themes(), "Adwaita"),
+            [(v,v) for v in self._get_valid_cursor_themes()],
+            default_value="Adwaita",
             **options)
 
     def _get_valid_cursor_themes(self):
@@ -80,10 +83,9 @@ class KeyThemeSwitcher(GSettingsComboTweak):
         GSettingsComboTweak.__init__(self,
             "org.gnome.desktop.interface",
             "gtk-key-theme",
-            make_combo_list_with_default(
-                self._get_valid_key_themes(),
-                "Default",
-                default_text=_("<i>Default</i>")),
+            [(v,v) for v in self._get_valid_key_themes()],
+            default_value="Default",
+            default_text=_("<i>Default</i>"),
             summary=_("Keybinding theme"),
             **options)
 

@@ -54,7 +54,7 @@ class _GSettingsSchema:
 
                         #default is optional
                         try:
-                            default = {"default" : key.getElementsByTagName("default")[0].childNodes[0].data}
+                            default = {"default" : key.getElementsByTagName("default")[0].childNodes[0].data.strip("'")}
                         except:
                             default = {}
 
@@ -93,6 +93,9 @@ class GSettingsSetting(Gio.Settings):
         
     def schema_get_description(self, key):
         return self._schema._schema[key]["description"]
+
+    def schema_get_default(self, key):
+        return self._schema._schema[key].get("default")
 
     def schema_get_all(self, key):
         return self._schema._schema[key]

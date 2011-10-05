@@ -39,16 +39,20 @@ def singleton(cls):
         return instances[cls]
     return getinstance
 
-def make_combo_list_with_default(opts, default, title=True, default_text=None):
+def make_combo_list_with_default(opts, default, **kwargs):
     """
     Turns a list of values into a list of value,name (where name is the
     display name a user will see in a combo box). If a value is opt is
     equal to that supplied in default the display name for that value is
     modified to "value <i>(default)</i>"
 
-    @opts: a list of value
+    @opts: a list of values
     @returns: a list of 2-tuples (value, name)
     """
+
+    default_title = kwargs.get("default_title", True)
+    default_text = kwargs.get("default_text")
+
     themes = []
     for t in opts:
         if t.lower() == "default" and t != default:
@@ -56,7 +60,7 @@ def make_combo_list_with_default(opts, default, title=True, default_text=None):
             #are not the actual default value
             continue
 
-        if title and len(t):
+        if default_title and len(t):
             name = t[0].upper() + t[1:]
         else:
             name = t
