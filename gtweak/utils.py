@@ -227,7 +227,7 @@ if __name__ == "__main__":
     gtweak.DATA_DIR = "/usr/share"
     gtweak.GSETTINGS_SCHEMA_DIR = "/usr/share/glib-2.0/schemas/"
 
-    logging.basicConfig(format="%(levelname)-8s: %(message)s", level=logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG)
 
     d = AutostartManager("matlab.desktop")
     print d.desktop_filename, "uses autostartcondition", d.uses_autostart_condition()

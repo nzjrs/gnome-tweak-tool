@@ -15,13 +15,47 @@
 # You should have received a copy of the GNU General Public License
 # along with gnome-tweak-tool.  If not, see <http://www.gnu.org/licenses/>.
 
+import glob
 import logging
 import os.path
 import xml.dom.minidom
+import ConfigParser
 
 import gtweak
 
 from gi.repository import Gio, GLib
+
+def fsingleton(cls):
+    """
+    Singleton decorator that works with GObject derived types. The 'recommended'
+    python one - http://wiki.python.org/moin/PythonDecoratorLibrary#Singleton
+    does not (interacts badly with GObjectMeta
+    """
+    instances = {}
+    def getinstance():
+        if cls not in instances:
+            instances[cls] = cls()
+        return instances[cls]
+    return getinstance
+
+@fsingleton
+class _GSettingsOverrides:
+    def __init__(self):
+        logging.debug("Building gsettings override cache")
+        self._conf = ConfigParser.RawConfigParser()
+        parsed = self._conf.read(
+                    glob.glob(os.path.join(gtweak.GSETTINGS_SCHEMA_DIR,"*.override")))
+
+    def override_get_default(self, schema_name, key, default):
+        try:
+            return self._conf.get(schema_name, key).strip('"')
+        except ConfigParser.NoSectionError:
+            return default
+        except ConfigParser.NoOptionError:
+            return default
+        except:
+            logging.critical("Error parsing gsettings override: %s:%s", schema_name, key)
+            return default
 
 class _GSettingsSchema:
     def __init__(self, schema_name, schema_filename=None, **options):
@@ -127,6 +161,11 @@ class GSettingsSetting(Gio.Settings):
 
 if __name__ == "__main__":
     gtweak.GSETTINGS_SCHEMA_DIR = "/usr/share/glib-2.0/schemas/"
+
+    logging.basicConfig(level=logging.DEBUG)
+
+    o = _GSettingsOverrides()
+    print o.override_get_default("org.gnome.desktop.interface","gtk-theme",None)
 
     key = "draw-background"
     s = GSettingsSetting("org.gnome.desktop.background")
