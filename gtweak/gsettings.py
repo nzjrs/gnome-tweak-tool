@@ -24,13 +24,11 @@ import gtweak
 from gi.repository import Gio, GLib
 
 class _GSettingsSchema:
-    def __init__(self, schema_name, schema_dir=None, schema_filename=None, **options):
-        if not schema_dir:
-            schema_dir = gtweak.GSETTINGS_SCHEMA_DIR
+    def __init__(self, schema_name, schema_filename=None, **options):
         if not schema_filename:
             schema_filename = schema_name + ".gschema.xml"
 
-        schema_path = os.path.join(schema_dir, schema_filename)
+        schema_path = os.path.join(gtweak.GSETTINGS_SCHEMA_DIR, schema_filename)
         assert(os.path.exists(schema_path))
 
         self._schema_name = schema_name
