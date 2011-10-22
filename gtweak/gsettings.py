@@ -25,38 +25,6 @@ import gtweak
 
 from gi.repository import Gio, GLib
 
-def fsingleton(cls):
-    """
-    Singleton decorator that works with GObject derived types. The 'recommended'
-    python one - http://wiki.python.org/moin/PythonDecoratorLibrary#Singleton
-    does not (interacts badly with GObjectMeta
-    """
-    instances = {}
-    def getinstance():
-        if cls not in instances:
-            instances[cls] = cls()
-        return instances[cls]
-    return getinstance
-
-@fsingleton
-class _GSettingsOverrides:
-    def __init__(self):
-        logging.debug("Building gsettings override cache")
-        self._conf = ConfigParser.RawConfigParser()
-        parsed = self._conf.read(
-                    glob.glob(os.path.join(gtweak.GSETTINGS_SCHEMA_DIR,"*.override")))
-
-    def override_get_default(self, schema_name, key, default):
-        try:
-            return self._conf.get(schema_name, key).strip('"')
-        except ConfigParser.NoSectionError:
-            return default
-        except ConfigParser.NoOptionError:
-            return default
-        except:
-            logging.critical("Error parsing gsettings override: %s:%s", schema_name, key)
-            return default
-
 class _GSettingsSchema:
     def __init__(self, schema_name, schema_filename=None, **options):
         if not schema_filename:
@@ -107,6 +75,13 @@ class GSettingsSetting(Gio.Settings):
         if schema_name not in _SCHEMA_CACHE:
             _SCHEMA_CACHE[schema_name] = _GSettingsSchema(schema_name, **options)
             logging.debug("Caching gsettings: %s" % _SCHEMA_CACHE[schema_name])
+        #I should use a singleton class for the override cache, but in the mean time
+        #stash it in this module dict with a special key
+        if 1 not in _SCHEMA_CACHE:
+            _SCHEMA_CACHE[1] = ConfigParser.RawConfigParser()
+            parsed = _SCHEMA_CACHE[1].read(
+                            glob.glob(os.path.join(gtweak.GSETTINGS_SCHEMA_DIR,"*.override")))
+            logging.debug("Building gsettings override cache\n\t%s","\n\t".join(parsed))
 
         self._schema = _SCHEMA_CACHE[schema_name]
 
@@ -119,6 +94,17 @@ class GSettingsSetting(Gio.Settings):
     def _setting_check_is_list(self, key):
         variant = Gio.Settings.get_value(self, key)
         return variant.get_type_string() == "as"
+
+    def override_get(self, key, default):
+        try:
+            return _SCHEMA_CACHE[1].get(self.props.schema, key).strip('"')
+        except ConfigParser.NoSectionError:
+            return default
+        except ConfigParser.NoOptionError:
+            return default
+        except:
+            logging.critical("Error parsing gsettings override: %s:%s", self.props.schema, key)
+            return default
 
     def schema_get_summary(self, key):
         return self._schema._schema[key]["summary"]
@@ -164,8 +150,10 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
 
-    o = _GSettingsOverrides()
-    print o.override_get_default("org.gnome.desktop.interface","gtk-theme",None)
+    key = "gtk-theme"
+    s = GSettingsSetting("org.gnome.desktop.interface")
+    print s.schema_get_all(key)
+    print s.override_get(key, None)
 
     key = "draw-background"
     s = GSettingsSetting("org.gnome.desktop.background")
