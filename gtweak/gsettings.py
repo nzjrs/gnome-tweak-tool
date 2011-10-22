@@ -97,6 +97,7 @@ class GSettingsSetting(Gio.Settings):
 
     def override_get(self, key, default):
         try:
+            #FIXME: I should use GLib.variant_parse here, but that does not work (pygobject-3.0)
             return _SCHEMA_CACHE[1].get(self.props.schema, key).strip('"')
         except ConfigParser.NoSectionError:
             return default
@@ -113,7 +114,11 @@ class GSettingsSetting(Gio.Settings):
         return self._schema._schema[key]["description"]
 
     def schema_get_default(self, key):
-        return self._schema._schema[key].get("default")
+        #try the override first, for the default value, if that is missing, get the
+        #default value from the scham, otherwise, return None
+        return self.override_get(
+                        key,
+                        self._schema._schema[key].get("default"))
 
     def schema_get_all(self, key):
         return self._schema._schema[key]
@@ -153,7 +158,9 @@ if __name__ == "__main__":
     key = "gtk-theme"
     s = GSettingsSetting("org.gnome.desktop.interface")
     print s.schema_get_all(key)
-    print s.override_get(key, None)
+    print s.schema_get_default(key)
+
+    print s.override_get("font-name", None)
 
     key = "draw-background"
     s = GSettingsSetting("org.gnome.desktop.background")
