@@ -38,6 +38,7 @@ class TweakView:
 
         self._model = model
         self._model.load_tweaks()
+        self._model.connect("row-changed", self._on_model_row_changed)
 
         self.treeview = Gtk.TreeView(model=model)        
         self.treeview.props.headers_visible = False
@@ -47,7 +48,7 @@ class TweakView:
         self.treeview.get_selection().connect("changed", self._on_selection_changed)
 
         tweak_container = builder.get_object('tweak_container')
-        tweak_box = Gtk.VBox(spacing=10)
+        self.tweak_box = Gtk.VBox(spacing=10)
 
         #FIXME: I may as well do this in the glade file now that
         #https://bugzilla.gnome.org/show_bug.cgi?id=644268 is fixed
@@ -57,16 +58,31 @@ class TweakView:
         vp = Gtk.Viewport()
         vp.props.shadow_type = Gtk.ShadowType.NONE
         sw.add(vp)
-        vp.add(tweak_box)
+        vp.add(self.tweak_box)
         tweak_container.add(sw)
 
         #add all tweaks
         for t in self._model.tweaks:
-            tweak_box.pack_start(t.widget, False, False, 0)
-            t.set_notify_cb(self._on_tweak_notify)
+            self._add_tweak(t)
 
         #dict of pending notifications, the key is the function to be called
         self._notification_functions = {}
+
+    def _add_tweak(self, t):
+        t.widget.hide()
+        self.tweak_box.pack_start(t.widget, False, False, 0)
+        t.set_notify_cb(self._on_tweak_notify)
+
+    def _on_model_row_changed(self, model, path, _iter):
+        logging.debug("TweakModel group changed")
+        group = model.get_value(_iter, TweakModel.COLUMN_TWEAK)
+        last_tweak = group.tweaks[-1]
+        self._add_tweak(last_tweak)
+
+        model, selected = self.treeview.get_selection().get_selected()
+        if selected:
+            if group == model.get_value(selected, TweakModel.COLUMN_TWEAK):
+                last_tweak.widget.show_all()
 
     def run(self):
         self._main_window.show_all()

@@ -161,7 +161,7 @@ class ShellExtensionTweakGroup(TweakGroup):
         except:
             logging.warning("Error detecting shell", exc_info=True)
 
-        self.set_tweaks(*extension_tweaks)
+        self.add_tweaks(*extension_tweaks)
 
 TWEAK_GROUPS = (
         ShellExtensionTweakGroup(),

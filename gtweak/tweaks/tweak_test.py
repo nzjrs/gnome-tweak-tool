@@ -17,7 +17,7 @@
 
 from __future__ import print_function
 
-from gi.repository import Gtk
+from gi.repository import Gtk, GObject
 
 from gtweak.tweakmodel import Tweak, TweakGroup
 from gtweak.widgets import build_label_beside_widget
@@ -57,13 +57,41 @@ class _TestButtonTweak(Tweak):
             else:
                 self.notify_info(self.name)
 
-TWEAK_GROUPS = (
-    TweakGroup(
-        "Test Settings Group",
-        *[_TestTweak("name: " + str(d), "desc: " + str(d)) for d in range(50)]),
-)
-
 group_name = "Test Settings"
+
+class _TestTweakGroup(TweakGroup):
+    def __init__(self):
+        TweakGroup.__init__(
+            self,
+            group_name + " 2",
+            *[_TestTweak("name: " + str(d), "desc: " + str(d)) for d in range(50)]
+        )
+
+
+        GObject.timeout_add_seconds(3,
+            lambda: self.emit_tweak(
+                        _TestInfoTweak("Dynamic Tweak", "", test_button_name="Beep")
+            )
+        )
+
+class _TestAddToExistingGroup(TweakGroup):
+    def __init__(self, **kwargs):
+        TweakGroup.__init__(
+            self,
+            None)     
+
+        GObject.timeout_add_seconds(4,
+            lambda: self.emit_tweak(
+                        _TestInfoTweak("Surprise Tweak", "", test_button_name="Boop"),
+                        group_name=group_name
+            )
+        )   
+
+
+TWEAK_GROUPS = (
+    _TestTweakGroup(),
+    _TestAddToExistingGroup()
+)
 
 TWEAKS = (
     _TestTweak("foo bar", "does foo bar", group_name=group_name),

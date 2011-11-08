@@ -21,7 +21,7 @@ import os.path
 
 import gtweak
 
-from gi.repository import Gtk
+from gi.repository import Gtk, GObject
 
 TWEAK_GROUP_FONTS = _("Fonts")
 TWEAK_GROUP_THEME = _("Theme")
@@ -72,22 +72,36 @@ class Tweak:
         if self._notify_cb:
             self._notify_cb(self, desc, False, None, None)
 
-class TweakGroup:
+class TweakGroup(GObject.GObject):
+
+    __gsignals__ = {
+      "tweak-added": (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE,
+            (GObject.TYPE_PYOBJECT,)
+    )}
+
     def __init__(self, name, *tweaks):
+        GObject.GObject.__init__(self)
         self.name = name
         self.tweaks = []
 
         self._sg = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.HORIZONTAL)
         self._sg.props.ignore_hidden = True
 
-        self.set_tweaks(*tweaks)
+        self.add_tweaks(*tweaks)
 
-    def set_tweaks(self, *tweaks):
-        self.tweaks += [t for t in tweaks]
-
+    def add_tweaks(self, *tweaks):
         for t in tweaks:
+            self.tweaks.append(t)
+            t.group_name = self.name
             if t.widget_for_size_group:
                 self._sg.add_widget(t.widget_for_size_group)
+
+    def emit_tweak(self, tweak, group_name=None):
+        tweak.group_name = group_name or self.name
+        if tweak.widget_for_size_group:
+            self._sg.add_widget(tweak.widget_for_size_group)
+
+        self.emit("tweak-added", tweak)
 
 class TweakModel(Gtk.ListStore):
     (COLUMN_NAME,
@@ -135,27 +149,38 @@ class TweakModel(Gtk.ListStore):
 
         for g in groups:
             self.add_tweak_group(g)
+            g.connect("tweak-added", lambda g,t: self.add_tweak_auto_to_group(t))
 
         for t in tweaks:
             self.add_tweak_auto_to_group(t)
 
     def add_tweak_group(self, tweakgroup):
-        if tweakgroup.name in self._tweak_group_names:
-            LOG.critical("Tweak group named: %s already exists" % tweakgroup.name)
-            return
+        if tweakgroup.name == None:
+            LOG.debug("No tweak group specified for %s" % tweakgroup.__class__.__name__)
+            return None
 
-        self.append([tweakgroup.name, tweakgroup])
-        self._tweak_group_names[tweakgroup.name] = tweakgroup
+        if tweakgroup.name in self._tweak_group_names:
+            LOG.debug("Tweak group named: %s already exists" % tweakgroup.name)
+            return None
+
+        _iter = self.append([tweakgroup.name, tweakgroup])
+        self._tweak_group_names[tweakgroup.name] = (tweakgroup, _iter)
+
+        return _iter
 
     def add_tweak_auto_to_group(self, tweak):
         name = tweak.group_name
+        if not name:
+            log.warning("Tweak missing group name: %s" % tweak)
         try:
-            group = self._tweak_group_names[name]
+            group,_iter = self._tweak_group_names[name]
         except KeyError:
             group = TweakGroup(name)
-            self.add_tweak_group(group)
+            _iter = self.add_tweak_group(group)
 
-        group.set_tweaks(tweak)
+        group.add_tweaks(tweak)
+        if self.iter_is_valid(_iter):
+            self.row_changed(self.get_path(_iter), _iter)
       
     def search_matches(self, txt):
         return [t for t in self.tweaks if t.search_matches(txt)]
