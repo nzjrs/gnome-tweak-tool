@@ -51,6 +51,10 @@ class _ShellProxy:
     def version(self):
         return self._version
 
+    @property
+    def version_tuple(self):
+        return map(int,self._version.split("."))
+
 class GnomeShell:
 
     EXTENSION_STATE = {
@@ -88,6 +92,10 @@ class GnomeShell:
     @property
     def version(self):
         return self._proxy.version
+
+    @property
+    def version_tuple(self):
+        return self._proxy.version_tuple
 
 class GnomeShell30(GnomeShell):
 
@@ -142,8 +150,8 @@ class GnomeShellFactory:
     def __init__(self):
         proxy = _ShellProxy()
         settings = GSettingsSetting("org.gnome.shell")
-        v = map(int,proxy.version.split("."))
 
+        v = proxy.version_tuple
         if v >= [3,3,2]:
             self.shell = GnomeShell34(proxy, settings)
         elif v >= [3,1,4]:
@@ -166,5 +174,4 @@ if __name__ == "__main__":
     print s.list_extensions()
 
     print s == GnomeShellFactory().get_shell()
-
 
