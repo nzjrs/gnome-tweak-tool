@@ -155,18 +155,22 @@ class TweakView:
         if selected:
             self._on_pre_selection_change()
             
-            #apparently iters do not persist over iteration, so use treepaths instead
-            path_selected = model.get_path(selected)
-            #hide other tweakgroups
-            root = model.get_iter_first()
-            while root:
-                if model.get_path(root) != path_selected:
-                    tweakgroup = model.get_value(root, model.COLUMN_TWEAK)
-                    self.hide_tweaks(tweakgroup.tweaks)
-                root = model.iter_next(root)
-            #show selected
-            tweakgroup = model.get_value(selected, model.COLUMN_TWEAK)
-            self.show_tweaks(tweakgroup.tweaks)
+            if 0:
+                #apparently iters do not persist over iteration, so use treepaths instead
+                path_selected = model.get_path(selected)
+                #hide other tweakgroups
+                root = model.get_iter_first()
+                while root:
+                    if model.get_path(root) != path_selected:
+                        tweakgroup = model.get_value(root, model.COLUMN_TWEAK)
+                        self.hide_tweaks(tweakgroup.tweaks)
+                    root = model.iter_next(root)
+                #show selected
+                tweakgroup = model.get_value(selected, model.COLUMN_TWEAK)
+                self.show_tweaks(tweakgroup.tweaks)
+            else:
+                tweakgroup = model.get_value(selected, model.COLUMN_TWEAK)
+                self.show_only_tweaks(tweakgroup.tweaks)
             
             self._on_post_selection_change()
             

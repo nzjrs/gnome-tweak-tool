@@ -79,9 +79,10 @@ class TweakGroup(GObject.GObject):
             (GObject.TYPE_PYOBJECT,)
     )}
 
-    def __init__(self, name, *tweaks):
+    def __init__(self, name, *tweaks, **options):
         GObject.GObject.__init__(self)
         self.name = name
+        self.parent_group_name = options.get("parent_group_name")
         self.tweaks = []
 
         self._sg = Gtk.SizeGroup(mode=Gtk.SizeGroupMode.HORIZONTAL)
@@ -103,7 +104,7 @@ class TweakGroup(GObject.GObject):
 
         self.emit("tweak-added", tweak)
 
-class TweakModel(Gtk.ListStore):
+class TweakModel(Gtk.TreeStore):
     (COLUMN_NAME,
      COLUMN_TWEAK) = range(2)
 
@@ -148,22 +149,35 @@ class TweakModel(Gtk.ListStore):
             tweaks.extend( getattr(mod, "TWEAKS", []) )
 
         for g in groups:
-            self.add_tweak_group(g)
-            g.connect("tweak-added", lambda g,t: self.add_tweak_auto_to_group(t))
+            if not g.parent_group_name:
+                self.add_tweak_group(g)
 
         for t in tweaks:
             self.add_tweak_auto_to_group(t)
 
-    def add_tweak_group(self, tweakgroup):
-        if tweakgroup.name == None:
-            LOG.debug("No tweak group specified for %s" % tweakgroup.__class__.__name__)
-            return None
+        for g in groups:
+            if g.parent_group_name:
+                self.add_tweak_group(g, g.parent_group_name)
 
+    def add_tweak_group(self, tweakgroup, parent_group_name=None):
         if tweakgroup.name in self._tweak_group_names:
             LOG.debug("Tweak group named: %s already exists" % tweakgroup.name)
             return None
 
-        _iter = self.append([tweakgroup.name, tweakgroup])
+        tweakgroup.connect("tweak-added", lambda g,t: self.add_tweak_auto_to_group(t))
+
+        if tweakgroup.name == None:
+            LOG.debug("No tweak group specified for %s" % tweakgroup.__class__.__name__)
+            return None
+
+        parent_group_iter = None
+        if parent_group_name:
+            try:
+                parent_group_iter = self._tweak_group_names[parent_group_name][1]
+            except:
+                LOG.warning("Tweak group specified invalid parent %s" % parent_group_name)
+
+        _iter = self.append(parent_group_iter, [tweakgroup.name, tweakgroup])
         self._tweak_group_names[tweakgroup.name] = (tweakgroup, _iter)
 
         return _iter
@@ -177,6 +191,8 @@ class TweakModel(Gtk.ListStore):
         except KeyError:
             group = TweakGroup(name)
             _iter = self.add_tweak_group(group)
+
+        print "----", tweak.group_name
 
         group.add_tweaks(tweak)
         if self.iter_is_valid(_iter):

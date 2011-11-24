@@ -67,10 +67,24 @@ class _TestTweakGroup(TweakGroup):
             *[_TestTweak("name: " + str(d), "desc: " + str(d)) for d in range(50)]
         )
 
-
         GObject.timeout_add_seconds(3,
             lambda: self.emit_tweak(
-                        _TestInfoTweak("Dynamic Tweak", "", test_button_name="Beep")
+                        _TestInfoTweak("Dynamic Tweak 2", "", test_button_name="Beep")
+            )
+        )
+
+class _TestTweakGroupChild(TweakGroup):
+    def __init__(self):
+        TweakGroup.__init__(
+            self,
+            group_name + " 3",
+            *[_TestTweak("name: " + str(d), "desc: " + str(d)) for d in range(5)],
+            parent_group_name = group_name
+        )
+
+        GObject.timeout_add_seconds(4,
+            lambda: self.emit_tweak(
+                        _TestInfoTweak("Dynamic Tweak 3", "", test_button_name="Beep")
             )
         )
 
@@ -80,9 +94,9 @@ class _TestAddToExistingGroup(TweakGroup):
             self,
             None)     
 
-        GObject.timeout_add_seconds(4,
+        GObject.timeout_add_seconds(5,
             lambda: self.emit_tweak(
-                        _TestInfoTweak("Surprise Tweak", "", test_button_name="Boop"),
+                        _TestInfoTweak("Dynamic Tweak 1", "", test_button_name="Beep"),
                         group_name=group_name
             )
         )   
@@ -90,6 +104,7 @@ class _TestAddToExistingGroup(TweakGroup):
 
 TWEAK_GROUPS = (
     _TestTweakGroup(),
+    _TestTweakGroupChild(),
     _TestAddToExistingGroup()
 )
 
