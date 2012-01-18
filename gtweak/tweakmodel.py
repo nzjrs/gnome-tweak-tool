@@ -138,10 +138,7 @@ class TweakModel(Gtk.ListStore):
             self.add_tweak_group(g)
 
         for t in tweaks:
-            if t.loaded:
-                self.add_tweak_auto_to_group(t)
-            else:
-                print t
+            self.add_tweak_auto_to_group(t)
 
     def add_tweak_group(self, tweakgroup):
         if tweakgroup.name in self._tweak_group_names:
@@ -152,6 +149,8 @@ class TweakModel(Gtk.ListStore):
         self._tweak_group_names[tweakgroup.name] = tweakgroup
 
     def add_tweak_auto_to_group(self, tweak):
+        if not tweak.loaded:
+            return
         name = tweak.group_name
         try:
             group = self._tweak_group_names[name]
