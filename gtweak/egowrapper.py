@@ -30,74 +30,108 @@ class ExtensionsDotGnomeDotOrg(GObject.GObject):
             (GObject.TYPE_PYOBJECT,)),
     }
 
-    def __init__(self):
+    IDX_PAGE_NUM = 0
+    IDX_NUM_PAGES = 1
+
+    def __init__(self, shell_version_tuple):
         GObject.GObject.__init__(self)
         self._session = Soup.SessionAsync.new()
         self._session.add_feature_by_type(SoupGNOME.ProxyResolverGNOME)
 
-    def _query_extensions_finished(self, msg):
+        self._shell_version_tuple = shell_version_tuple
+        self._extensions = {}
+
+    def _query_extensions_finished(self, msg, url, pages):
         if msg.status_code == 200:
-            #server returns a list of extensions which may contain duplicates
-            extensions = {}
-            for e in json.loads(msg.response_body.data):
-                extensions[e["uuid"]] = e
-            self.emit("got-extensions", extensions)
+            #server returns a list of extensions which may contain duplicates, dont know
+            resp = json.loads(msg.response_body.data)
+            for e in resp["extensions"]:
+                self._extensions[e["uuid"]] = e
+
+            #first time
+            if pages[self.IDX_NUM_PAGES] == -1:
+                pages[self.IDX_NUM_PAGES] = int(resp["numpages"])
+
+            #finished
+            if pages[self.IDX_PAGE_NUM] == pages[self.IDX_NUM_PAGES]:
+                self.emit("got-extensions", self._extensions)
+            else:
+            #get next page
+                url = url.replace(
+                        "page=%d" % pages[self.IDX_PAGE_NUM],
+                        "page=%d" % (pages[self.IDX_PAGE_NUM] + 1))
+                pages[self.IDX_PAGE_NUM] = pages[self.IDX_PAGE_NUM] + 1
+                self._queue_query(url, pages)
 
     def _query_extension_info_finished(self, msg):
         if msg.status_code == 200:
             self.emit("got-extension-info", json.loads(msg.response_body.data))
 
-    def query_extensions(self, shell_version_tuple):
+    def _queue_query(self, url, pages):
+        logging.debug("Query URL: %s" % url)
+        message = Soup.Message.new('GET', url)
+        message.connect("finished", self._query_extensions_finished, url, pages)
+        self._session.queue_message(message, None, None)
+
+    def query_extensions(self):
         url = "https://extensions.gnome.org/extension-query/?"
 
-        if shell_version_tuple[1] % 2:
+        ver = self._shell_version_tuple
+        if ver[1] % 2:
             #if this is a development version (odd) then query the full version
-            url += "shell_version=%d.%d.%d" % shell_version_tuple
+            url += "shell_version=%d.%d.%d&" % ver
         else:
             #else query in point releases up to the current version, and filter duplicates
             #from the reply
-            url += "shell_version=%d.%d&" % (shell_version_tuple[0],shell_version_tuple[1])
-            for i in range(1,shell_version_tuple[2]+1):
-                url += "shell_version=%d.%d.%d&" % (shell_version_tuple[0],shell_version_tuple[1], i)
+            url += "shell_version=%d.%d&" % (ver[0],ver[1])
+            for i in range(1,ver[2]+1):
+                url += "shell_version=%d.%d.%d&" % (ver[0],ver[1], i)
 
-        logging.debug("Query URL: %s" % url)
+        pages = [1,-1]
+        url += "page=1"
 
-        message = Soup.Message.new('GET', url)
-        message.connect("finished", self._query_extensions_finished)
-        self._session.queue_message(message, None, None)
+        self._queue_query(url, pages)
 
     def query_extension_info(self, extension_uuid):
+        if extension_uuid in self._extensions:
+            print "CACHED"
+            self.emit("got-extension-info", self._extensions[extension_uuid])
+            return
+
         url = "https://extensions.gnome.org/extension-info/?uuid=%s" % extension_uuid
-
         logging.debug("Query URL: %s" % url)
-
         message = Soup.Message.new('GET', url)
         message.connect("finished", self._query_extension_info_finished)
         self._session.queue_message(message, None, None)
 
+    def get_download_url(self, extinfo, shell_version_tuple):
+        url = "https://extensions.gnome.org/download-extension/%s.shell-extension.zip?version_tag=%d"
+
+        #version tag is the pk in the shell_version_map
+        #url = url % (extinfo["uuid"], 
+
 
 if __name__ == "__main__":
     import pprint
-    from gi.repository import Gtk
+    from gi.repository import Gtk, GLib
 
-    def _got_ext(ego, extensions, i):
+    def _got_ext(ego, extensions):
         print "="*80
         pprint.pprint(extensions.values())
-        i[0] -= 1
-        if i[0] == 0:
-            Gtk.main_quit()
+
+    def _got_ext_info(ego, extension):
+        pprint.pprint(extension)
 
     logging.basicConfig(format="%(levelname)-8s: %(message)s", level=logging.DEBUG)
 
-    e = ExtensionsDotGnomeDotOrg()
+    e = ExtensionsDotGnomeDotOrg((3,4,1))
 
-    i = [4]
-    e.connect("got-extensions", _got_ext, i)
-    e.connect("got-extension-info", _got_ext, i)
+    e.connect("got-extensions", _got_ext)
+    e.connect("got-extension-info", _got_ext_info)
 
-    e.query_extensions((3,2,0))
-    e.query_extensions((3,2,2))
-    e.query_extensions((3,3,2))
+    e.query_extensions()
+    #e.query_extensions((3,4,0))
+    #e.query_extensions((3,3,2))
     e.query_extension_info("user-theme@gnome-shell-extensions.gcampax.github.com")
 
     Gtk.main()
