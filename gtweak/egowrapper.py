@@ -104,9 +104,8 @@ class ExtensionsDotGnomeDotOrg(GObject.GObject):
         message.connect("finished", self._query_extension_info_finished)
         self._session.queue_message(message, None, None)
 
-    def get_download_url(self, extinfo, shell_version_tuple):
+    def get_download_url(self, extinfo):
         url = "https://extensions.gnome.org/download-extension/%s.shell-extension.zip?version_tag=%d"
-
         #version tag is the pk in the shell_version_map
         #url = url % (extinfo["uuid"], 
 
