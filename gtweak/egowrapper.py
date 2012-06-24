@@ -30,9 +30,6 @@ class ExtensionsDotGnomeDotOrg(GObject.GObject):
             (GObject.TYPE_PYOBJECT,)),
     }
 
-    IDX_PAGE_NUM = 0
-    IDX_NUM_PAGES = 1
-
     def __init__(self, shell_version_tuple):
         GObject.GObject.__init__(self)
         self._session = Soup.SessionAsync.new()
@@ -41,37 +38,17 @@ class ExtensionsDotGnomeDotOrg(GObject.GObject):
         self._shell_version_tuple = shell_version_tuple
         self._extensions = {}
 
-    def _query_extensions_finished(self, msg, url, pages):
+    def _query_extensions_finished(self, msg, url):
         if msg.status_code == 200:
             #server returns a list of extensions which may contain duplicates, dont know
             resp = json.loads(msg.response_body.data)
             for e in resp["extensions"]:
                 self._extensions[e["uuid"]] = e
-
-            #first time
-            if pages[self.IDX_NUM_PAGES] == -1:
-                pages[self.IDX_NUM_PAGES] = int(resp["numpages"])
-
-            #finished
-            if pages[self.IDX_PAGE_NUM] == pages[self.IDX_NUM_PAGES]:
-                self.emit("got-extensions", self._extensions)
-            else:
-            #get next page
-                url = url.replace(
-                        "page=%d" % pages[self.IDX_PAGE_NUM],
-                        "page=%d" % (pages[self.IDX_PAGE_NUM] + 1))
-                pages[self.IDX_PAGE_NUM] = pages[self.IDX_PAGE_NUM] + 1
-                self._queue_query(url, pages)
+            self.emit("got-extensions", self._extensions)
 
     def _query_extension_info_finished(self, msg):
         if msg.status_code == 200:
             self.emit("got-extension-info", json.loads(msg.response_body.data))
-
-    def _queue_query(self, url, pages):
-        logging.debug("Query URL: %s" % url)
-        message = Soup.Message.new('GET', url)
-        message.connect("finished", self._query_extensions_finished, url, pages)
-        self._session.queue_message(message, None, None)
 
     def query_extensions(self):
         url = "https://extensions.gnome.org/extension-query/?"
@@ -86,11 +63,13 @@ class ExtensionsDotGnomeDotOrg(GObject.GObject):
             url += "shell_version=%d.%d&" % (ver[0],ver[1])
             for i in range(1,ver[2]+1):
                 url += "shell_version=%d.%d.%d&" % (ver[0],ver[1], i)
+        #non-paginated
+        url += "n_per_page=-1"
 
-        pages = [1,-1]
-        url += "page=1"
-
-        self._queue_query(url, pages)
+        logging.debug("Query URL: %s" % url)
+        message = Soup.Message.new('GET', url)
+        message.connect("finished", self._query_extensions_finished, url)
+        self._session.queue_message(message, None, None)
 
     def query_extension_info(self, extension_uuid):
         if extension_uuid in self._extensions:
