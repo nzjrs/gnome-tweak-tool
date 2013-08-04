@@ -262,14 +262,23 @@ class DisableExtension(GObject.GObject):
     def disable(self):
         self.emit("disable-extension")
 
-class Notification:
-    def __init__(self):       
+class LogoutNotification:
+    def __init__(self):
         self.notification = None
         if Notify.is_initted() or Notify.init("GNOME Tweak Tool"):
             self.notification = Notify.Notification.new("Configuration changes requiere restart","Your session needs to be restarted for settings to take effect", 'gnome-tweak-tool')
-            self.notification.add_action("restart", "Restart Session",self.logout,None,None)
+            self.notification.add_action(
+                                "restart",
+                                "Restart Session",
+                                self.logout,None,None)
+            self.notification.set_hint(
+                                "resident",
+                                GLib.Variant('b', True))
+            self.notification.set_hint(
+                                "desktop-entry",
+                                GLib.Variant('s', 'gnome-tweak-tool'))
         else:
-            print "Error: Could not create the notification"
+            raise Exception("Not Supported")
 
     def show(self):
         if self.notification:
