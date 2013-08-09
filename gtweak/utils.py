@@ -20,7 +20,7 @@ import logging
 import tempfile
 import shutil
 import subprocess
-import dbus
+import glob
 
 import gtweak
 from gtweak.gsettings import GSettingsSetting
@@ -147,6 +147,12 @@ class AutostartManager:
         dirs = [gtweak.DATA_DIR, GLib.get_user_data_dir()]
         dirs.extend(GLib.get_system_data_dirs())
         return [os.path.join(d, "applications", self.desktop_filename) for d in dirs]
+
+    @staticmethod
+    def get_user_autostart_files():
+        return glob.glob(
+                    os.path.join(
+                        GLib.get_user_config_dir(), "autostart", "*.desktop")) 
 
     def get_autostart_condition(self):
         for f in self._get_system_autostart_files():
