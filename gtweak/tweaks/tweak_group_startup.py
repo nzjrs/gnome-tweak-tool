@@ -14,8 +14,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with gnome-tweak-tool.  If not, see <http://www.gnu.org/licenses/>.
-
 from __future__ import print_function
+
+import os.path
+import subprocess
 
 from gi.repository import Gtk, GLib, Gio
 
@@ -23,9 +25,56 @@ from gtweak.tweakmodel import Tweak
 from gtweak.widgets import ListBoxTweakGroup, UI_BOX_SPACING
 from gtweak.utils import AutostartManager
 
+class _AppChooser(Gtk.Dialog):
+    def __init__(self, main_window, running):
+        Gtk.Dialog.__init__(self)
+
+        self._running = running
+        self._all = {}
+
+        lb = Gtk.ListBox()
+        lb.props.margin = 5
+
+        apps = Gio.app_info_get_all()
+        for a in apps:
+            if a.should_show():
+                w = self._build_widget(
+                        a,
+                        'running' if a.get_executable() in running else '')
+                lb.add(w)
+                self._all[w] = a.get_id()
+
+        sw = Gtk.ScrolledWindow()
+        sw.props.hscrollbar_policy = Gtk.PolicyType.NEVER
+        sw.add(lb)
+
+        self.get_content_area().pack_start(sw, True, True, 0)
+        self.set_modal(True)
+        self.set_transient_for(main_window)
+        self.set_size_request(400,300)
+
+    def _build_widget(self, a, extra):
+        row = Gtk.ListBoxRow()
+        g = Gtk.Grid()
+        img = Gtk.Image.new_from_gicon(a.get_icon(),Gtk.IconSize.DIALOG)
+        g.attach(img, 0, 0, 1, 1)
+        img.props.hexpand = False
+        lbl = Gtk.Label(a.get_name(), xalign=0)
+        g.attach_next_to(lbl,img,Gtk.PositionType.RIGHT,1,1)
+        lbl.props.hexpand = True
+        lbl.props.halign = Gtk.Align.START
+        lbl.props.vexpand = False
+        lbl.props.valign = Gtk.Align.CENTER
+        if extra:
+            g.attach_next_to(
+                Gtk.Label(extra),
+                lbl,Gtk.PositionType.RIGHT,1,1)
+        row.add(g)
+        #row.get_style_context().add_class('tweak-white')
+        return row
+
 class _StartupTweak(Gtk.ListBoxRow, Tweak):
-    def __init__(self, filename, **options):
-        df = Gio.DesktopAppInfo.new_from_filename(filename)
+    def __init__(self, df, **options):
 
         Gtk.ListBoxRow.__init__(self)
         Tweak.__init__(self, 
@@ -59,8 +108,8 @@ class AutostartListBoxTweakGroup(ListBoxTweakGroup):
 
         files = AutostartManager.get_user_autostart_files()
         for f in files:
-            tweaks.append( _StartupTweak(f) )
-
+            df = Gio.DesktopAppInfo.new_from_filename(f)
+            tweaks.append( _StartupTweak(df) )
 
         ListBoxTweakGroup.__init__(self,
             "Startup Applications",
@@ -80,7 +129,27 @@ class AutostartListBoxTweakGroup(ListBoxTweakGroup):
         self.add(btn)
 
     def _on_add_clicked(self, btn):
-        print("234")
+        a = _AppChooser(
+                self.main_window,
+                set(self._get_running_executables()))
+        a.show_all()
+        a.run()
+        a.destroy()
+
+    def _get_running_executables(self):
+        exes = []
+        cmd = subprocess.Popen([
+                    'ps','-e','-w','-w','-U',
+                    os.getlogin(),'-o','cmd'],
+                    stdout=subprocess.PIPE)
+        out = cmd.communicate()[0]
+        for l in out.split('\n'):
+            exe = l.split(' ')[0]
+            if exe and exe[0] != '[': #kernel process
+                exes.append( os.path.basename(exe) )
+
+        return exes
+
 
     def _list_header_func(self, row, before, user_data):
         if before and not row.get_header():
