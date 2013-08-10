@@ -218,8 +218,6 @@ class ShellThemeTweak(Gtk.Box, Tweak):
             build_label_beside_widget(self.name, chooser, cb, hbox=self)
             self.widget_for_size_group = cb
 
-            self.widget_sort_hint = TWEAK_SORT_LAST
-    
     def _on_file_set(self, chooser):
         f = chooser.get_filename()
 

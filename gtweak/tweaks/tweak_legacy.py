@@ -151,7 +151,7 @@ TWEAKS = (
     GSettingsSwitchTweak("Use location entry", "org.gnome.nautilus.preferences", "always-use-location-entry",schema_filename="org.gnome.nautilus.gschema.xml",group_name=TWEAK_GROUP_FILES),
     GSettingsFileChooserButtonTweak("org.gnome.desktop.background", "picture-uri", local_only=True, mimetypes=["application/xml","image/png","image/jpeg"], group_name=TWEAK_GROUP_DESKTOP),
     GSettingsComboEnumTweak("Background options","org.gnome.desktop.background", "picture-options", group_name=TWEAK_GROUP_DESKTOP),
-    GSettingsSpinButtonTweak("org.gnome.desktop.interface", "text-scaling-factor", adjustment_step=0.1, digits=1,sort=TWEAK_SORT_FIRST,group_name=TWEAK_GROUP_FONTS),
+    GSettingsSpinButtonTweak("org.gnome.desktop.interface", "text-scaling-factor", adjustment_step=0.1, digits=1,group_name=TWEAK_GROUP_FONTS),
     GSettingsComboTweak("Modifier to use for modified window click actions",
                         "org.gnome.desktop.wm.preferences",
                         "mouse-button-modifier",

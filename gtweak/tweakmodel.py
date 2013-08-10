@@ -56,11 +56,8 @@ class Tweak(object):
         self.uid = options.get("uid", self.__class__.__name__)
         self.group_name = options.get("group_name",_("Miscellaneous"))
         self.loaded = options.get("loaded", True)
-        self.widget_sort_hint = None
 
         self._search_cache = None
-        if options.get("sort"):
-            self.widget_sort_hint = options.get("sort")
 
     def search_matches(self, txt):
         if self._search_cache == None:
