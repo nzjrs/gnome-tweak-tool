@@ -33,6 +33,7 @@ class _AppChooser(Gtk.Dialog):
     def __init__(self, main_window, running_exes):
         Gtk.Dialog.__init__(self)
 
+
         self._running = {}
         self._all = {}
 
@@ -55,6 +56,13 @@ class _AppChooser(Gtk.Dialog):
         sw = Gtk.ScrolledWindow()
         sw.props.hscrollbar_policy = Gtk.PolicyType.NEVER
         sw.add(lb)
+
+        self.add_button("Add Application", Gtk.ResponseType.OK)
+
+        hb = Gtk.HeaderBar()
+        hb.props.show_close_button = True
+        hb.props.title = "Extensions"
+        self.set_titlebar(hb)
 
         self.get_content_area().pack_start(sw, True, True, 0)
         self.set_modal(True)
