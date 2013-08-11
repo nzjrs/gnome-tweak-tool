@@ -19,10 +19,10 @@ from gtweak.utils import DisableExtension
 
 def N_(x): return x
 
-class _ShellExtensionTweak(Gtk.Box, Tweak):
+class _ShellExtensionTweak(Gtk.ListBoxRow, Tweak):
 
     def __init__(self, shell, ext, **options):
-        Gtk.Box.__init__(self, orientation=Gtk.Orientation.HORIZONTAL)
+        Gtk.ListBoxRow.__init__(self)
         Tweak.__init__(self, ext["name"], ext.get("description",""), **options)
 
         self._shell = shell
@@ -74,13 +74,14 @@ class _ShellExtensionTweak(Gtk.Box, Tweak):
         de = DisableExtension()
         de.connect('disable-extension', self._on_disable_extension, sw)
          
-        build_extension_widget(
+        self.row = build_extension_widget(
                         ext["name"].lower().capitalize(),
                         ext["description"].lower().capitalize(),
                         *widgets,
-                        warning=warning,
-                        hbox=self)
+                        warning=warning)
+        self.add(self.row)
         self.widget_for_size_group = None
+        self.get_style_context().add_class('tweak-white')
 
     def _on_disable_extension(self, de, sw):
         sw.set_active(False)
@@ -114,11 +115,14 @@ class _ShellExtensionTweak(Gtk.Box, Tweak):
             response = dialog.run()
             if response == Gtk.ResponseType.YES:
                 self._shell.uninstall_extension(uuid)
-                self.widget.set_sensitive(False)
+                self.set_sensitive(False)
+                btn.get_style_context().remove_class("suggested-action")
             dialog.destroy()
 
     def _on_extension_update(self, btn, uuid):
         self._shell.uninstall_extension(uuid)
+        btn.get_style_context().remove_class("suggested-action")
+        btn.set_label("Updating")
         self.set_sensitive(False)
         thread = threading.Thread(target=self.download_extension, args=(btn,uuid,))
         thread.start()
@@ -135,10 +139,8 @@ class _ShellExtensionTweak(Gtk.Box, Tweak):
         updateButton = Gtk.Button("Update")   
         updateButton.get_style_context().add_class("suggested-action")
         updateButton.connect("clicked", self._on_extension_update, uuid)
-        self.pack_end(updateButton, False, False,0)
         updateButton.show()
-        
-        
+        self.row.pack_end(updateButton, False, False, 0)
     
 class _ShellExtensionInstallerTweak(Gtk.Box, Tweak):
 
@@ -263,7 +265,8 @@ class ShellExtensionTweakGroup(ListBoxTweakGroup):
             
         ListBoxTweakGroup.__init__(self,
                                    _("Extensions"),
-                                   *extension_tweaks)
+                                   *extension_tweaks,
+                                   css_class='tweak-group-white')
         
         self.set_header_func(self._list_header_func, None)
 

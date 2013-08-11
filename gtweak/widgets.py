@@ -35,10 +35,7 @@ def build_extension_widget(name, description, *widget, **kwargs):
         image.set_tooltip_text(tip)
         return image
 
-    if kwargs.get("hbox"):
-        hbox = kwargs.get("hbox")
-    else:
-        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+    hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
 
     hbox.props.border_width = 10
     hbox.props.spacing = UI_BOX_SPACING
@@ -57,7 +54,7 @@ def build_extension_widget(name, description, *widget, **kwargs):
     vbox.pack_start(lbl_name, False, False, 0)
     vbox.pack_start(lbl_desc, False, False, 0)
 
-    hbox.pack_start(vbox, True, True, 0)
+    hbox.pack_start(vbox, True, True, 10)
     hbox.reorder_child(vbox, 1)
 
     if kwargs.get("info"):
