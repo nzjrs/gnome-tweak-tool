@@ -28,6 +28,50 @@ from gtweak.gshellwrapper import GnomeShellFactory
 UI_BOX_SPACING = 4
 _shell = GnomeShellFactory().get_shell()
 
+def build_extension_widget(name, description, *widget, **kwargs):
+        
+    def make_image(icon, tip):
+        image = Gtk.Image.new_from_icon_name(icon, Gtk.IconSize.MENU)
+        image.set_tooltip_text(tip)
+        return image
+
+    if kwargs.get("hbox"):
+        hbox = kwargs.get("hbox")
+    else:
+        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+
+    hbox.props.border_width = 10
+    hbox.props.spacing = UI_BOX_SPACING
+    vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+
+    for w in widget:
+        hbox.pack_start(w, False, False, 0)
+
+    lbl_name = Gtk.Label(xalign=0.0)
+    lbl_name.set_markup("<span size='medium'><b>"+name+"</b></span>")
+    lbl_desc = Gtk.Label(xalign=0.0)
+    desc = description.split('\n')[0]
+    lbl_desc.set_markup("<span foreground='#A19C9C' size='small'>"+desc+"</span>")
+    lbl_desc.props.ellipsize = Pango.EllipsizeMode.END 
+    
+    vbox.pack_start(lbl_name, False, False, 0)
+    vbox.pack_start(lbl_desc, False, False, 0)
+
+    hbox.pack_start(vbox, True, True, 0)
+    hbox.reorder_child(vbox, 1)
+
+    if kwargs.get("info"):
+        info = make_image("dialog-information-symbolic", kwargs.get("info"))
+        hbox.pack_start(info, False, False, 0)
+        hbox.reorder_child(info, 2)
+                  
+    if kwargs.get("warning"):
+        warning = make_image("dialog-warning-symbolic", kwargs.get("warning"))
+        hbox.pack_start(warning, False, False, 0)
+        hbox.reorder_child(warning,2)
+    
+    return hbox
+
 def build_label_beside_widget(txt, *widget, **kwargs):
     """
     Builds a HBox containing widgets.
