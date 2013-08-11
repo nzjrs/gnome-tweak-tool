@@ -25,24 +25,32 @@ from gtweak.tweakmodel import Tweak
 from gtweak.widgets import ListBoxTweakGroup, UI_BOX_SPACING
 from gtweak.utils import AutostartManager
 
+def _list_header_func(row, before, user_data):
+    if before and not row.get_header():
+        row.set_header (Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
+
 class _AppChooser(Gtk.Dialog):
-    def __init__(self, main_window, running):
+    def __init__(self, main_window, running_exes):
         Gtk.Dialog.__init__(self)
 
-        self._running = running
+        self._running = {}
         self._all = {}
 
         lb = Gtk.ListBox()
         lb.props.margin = 5
+        lb.set_sort_func(self._sort_apps, None)
+        lb.set_header_func(_list_header_func, None)
 
         apps = Gio.app_info_get_all()
         for a in apps:
             if a.should_show():
+                running = a.get_executable() in running_exes
                 w = self._build_widget(
                         a,
-                        'running' if a.get_executable() in running else '')
+                        'running' if running else '')
                 lb.add(w)
-                self._all[w] = a.get_id()
+                self._all[w] = a
+                self._running[w] = running
 
         sw = Gtk.ScrolledWindow()
         sw.props.hscrollbar_policy = Gtk.PolicyType.NEVER
@@ -52,6 +60,11 @@ class _AppChooser(Gtk.Dialog):
         self.set_modal(True)
         self.set_transient_for(main_window)
         self.set_size_request(400,300)
+
+    def _sort_apps(self, a, b, user_data):
+        if self._running.get(a) and not self._running.get(b):
+            return -1
+        return 1
 
     def _build_widget(self, a, extra):
         row = Gtk.ListBoxRow()
@@ -115,7 +128,7 @@ class AutostartListBoxTweakGroup(ListBoxTweakGroup):
             "Startup Applications",
             *tweaks,
             css_class='tweak-group-white')
-        self.set_header_func(self._list_header_func, None)
+        self.set_header_func(_list_header_func, None)
         
         btn = Gtk.Button("")
         btn.get_style_context().remove_class("button")
@@ -151,9 +164,6 @@ class AutostartListBoxTweakGroup(ListBoxTweakGroup):
         return exes
 
 
-    def _list_header_func(self, row, before, user_data):
-        if before and not row.get_header():
-            row.set_header (Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
 
 
 TWEAK_GROUPS = [
